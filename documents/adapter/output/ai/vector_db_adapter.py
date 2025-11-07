@@ -1,24 +1,24 @@
-# vector_db_adapter.py
-import faiss
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
-
 from documents.domain.port.vector_db_port import VectorDBPort
 
 
 class FAISSVectorDBAdapter(VectorDBPort):
     def __init__(self):
-        # 로컬 임베딩 모델
-        self.embedding = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
+        model_name = "sentence-transformers/all-MiniLM-L6-v2"
+        self.embedding = HuggingFaceEmbeddings(model_name=model_name)
 
-        # 빈 FAISS Index 초기화 (MiniLM-L6-v2 = 384차원)
-        embedding_dim = 384
-        index = faiss.IndexFlatL2(embedding_dim)
+        # dummy로 초기 인덱스 생성
+        self.db = FAISS.from_texts(["dummy"], self.embedding)
 
-        # 비어 있는 VectorStore 생성
-        self.db = FAISS(embedding_function=self.embedding, index=index, docstore={}, index_to_docstore_id={})
+        # ✅ 실제 존재하는 인덱스 ID만 삭제
+        try:
+            if len(self.db.index_to_docstore_id) > 0:
+                # key = 실제 FAISS 인덱스 번호 (0,1,2,...)
+                faiss_index_id = list(self.db.index_to_docstore_id.keys())[0]
+                self.db.delete([faiss_index_id])
+        except Exception as e:
+            print("Dummy delete skipped:", e)
 
     def add_document(self, doc_id: str, content: str):
         self.db.add_texts([content], ids=[doc_id])
