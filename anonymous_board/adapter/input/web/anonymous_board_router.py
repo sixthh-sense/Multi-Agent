@@ -8,7 +8,20 @@ from anonymous_board.application.usecase.anonymous_board_usecase import Anonymou
 from anonymous_board.infrastructure.repository.anonymous_board_repository_impl import AnonymousBoardRepositoryImpl
 
 anonymous_board_router = APIRouter()
-usecase = AnonymousBoardUseCase(AnonymousBoardRepositoryImpl())
+usecase = AnonymousBoardUseCase.getInstance()
+# usecase = AnonymousBoardUseCase(AnonymousBoardRepositoryImpl())
+# 이렇게 구성하면 이점이 무엇인가?
+# anonymouse_board_usecase
+# account_usecase 같이 여러 도메인들과 협력할 수 있는 구성의 경우
+# 유일성을 보장해주는 것이 사용하기 유리한 측면이 있음.
+# 그냥 무지성으로 getInstance() 호출하면 일단 유일한 객체라는 것이 보장됨.
+# @RequiredArgsConstructor 입력 이후
+# final private AccountService accountService 하는것과 같음
+# @Autowired private AccountService accountService 하는것과 같음
+# 결국 getInstance()로 위의 작업을 대신한다 생각하면 됩니다.
+# 되도록 무지성으로 코딩할 수 있어야 생각할 요소가 상대적으로 적어지니까요.
+# 도메인 구성 예쁘게 하는 것만 해도 머리 아픈데 저것까지 신경 쓰면 더 아픕니다.
+# 최대한 문제를 단순화 시키는 것이 이득이기 때문에 위와 같은 선택을 하였습니다.
 
 @anonymous_board_router.post("/create", response_model=AnonymousBoardResponse)
 def create_board(request: CreateAnonymousBoardRequest):
