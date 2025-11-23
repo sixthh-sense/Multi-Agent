@@ -24,4 +24,6 @@ async def analyze_document(request: AnalyzeRequest):
             "answer": agents.answer
         }
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # 콘솔에 전체 스택트레이스 출력
         raise HTTPException(status_code=500, detail=str(e))

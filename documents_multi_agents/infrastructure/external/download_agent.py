@@ -1,10 +1,25 @@
 import os
 import hashlib
 import aiohttp
+import boto3
+from urllib.parse import urlparse, unquote
 
 # 캐시 디렉토리 경로 설정
 CACHE_DIR = "./cache"
 os.makedirs(CACHE_DIR, exist_ok=True)  # 디렉토리 자동 생성
+
+def get_presigned_url(doc_url: str, expiration: int = 3600) -> str:
+    """S3 URL을 pre-signed URL로 변환"""
+    parsed = urlparse(doc_url)
+    bucket_name = parsed.netloc.split('.')[0]
+    object_key = unquote(parsed.path.lstrip('/'))
+
+    s3_client = boto3.client('s3')
+    return s3_client.generate_presigned_url(
+        'get_object',
+        Params={'Bucket': bucket_name, 'Key': object_key},
+        ExpiresIn=expiration
+    )
 
 async def download_document(doc_url: str) -> bytes:
     """
@@ -20,8 +35,14 @@ async def download_document(doc_url: str) -> bytes:
 
     # 없으면 다운로드
     print(f"[DEBUG] 다운로드 시작: {doc_url}")
-    async with aiohttp.ClientSession() as session:
-        async with session.get(doc_url) as resp:
+
+    # pre-signed URL 생성
+    presigned_url = get_presigned_url(doc_url)
+    print(f"[DEBUG] Pre-signed URL 생성 완료")
+
+    timeout = aiohttp.ClientTimeout(total=60)
+    async with aiohttp.ClientSession(timeout=timeout) as session:
+        async with session.get(presigned_url, allow_redirects=True) as resp:
             if resp.status != 200:
                 raise Exception(f"다운로드 실패: {resp.status}")
             content = await resp.read()
